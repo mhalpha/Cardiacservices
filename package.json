@@ -1,0 +1,29 @@
+{
+  "name": "store-locations",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.7.1",
+    "@emotion/styled": "^11.6.0",
+    "@mui/icons-material": "^5.15.18",
+    "@mui/material": "^5.2.0",
+    "@react-google-maps/api": "^2.3.0",
+    "axios": "^1.7.1",
+    "next": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "typescript": "latest"
+  },
+  "devDependencies": {
+    "@types/node": "20.12.12",
+    "@types/react": "^17.0.37",
+    "eslint": "7.32.0",
+    "eslint-config-next": "11.1.2"
+  }
+}
