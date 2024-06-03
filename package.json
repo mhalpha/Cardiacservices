@@ -13,11 +13,14 @@
     "@emotion/styled": "^11.6.0",
     "@mui/icons-material": "^5.15.18",
     "@mui/material": "^5.2.0",
+    "@prisma/client": "^5.14.0",
     "@react-google-maps/api": "^2.3.0",
     "axios": "^1.7.1",
+    "mssql": "^10.0.2",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "tedious": "^18.2.0",
     "typescript": "latest"
   },
   "devDependencies": {

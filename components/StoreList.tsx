@@ -4,7 +4,6 @@ import { LoadScript, Autocomplete } from '@react-google-maps/api';
 import ClearIcon from '@mui/icons-material/Clear';
 import StoreCard from './StoreCard';
 import StoreMap from './StoreMap';
-import { storeLocations } from './storeLocations'; // Adjust the import path as needed
 
 const libraries: ('places')[] = ['places']; // Declare the libraries array as a mutable array
 
@@ -29,8 +28,9 @@ const StoreList = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [radius, setRadius] = useState(10);
-  const [filteredStores, setFilteredStores] = useState(storeLocations);
-  const [nearestStores, setNearestStores] = useState(storeLocations);
+  const [filteredStores, setFilteredStores] = useState([]);
+  const [nearestStores, setNearestStores] = useState([]);
+  const [allStores, setAllStores] = useState([]);
   const [autocomplete, setAutocomplete] = useState<google.maps.places.Autocomplete | null>(null);
   const [noStoresFound, setNoStoresFound] = useState(false);
   const [searchMode, setSearchMode] = useState<'autocomplete' | 'keyword'>('autocomplete');
@@ -38,9 +38,41 @@ const StoreList = () => {
 
   const [mapCenter, setMapCenter] = useState(initialCenter);
   const [zoom, setZoom] = useState(initialZoom);
+  const [dataLoaded, setDataLoaded] = useState(false);
+
+  useEffect(() => {
+    const fetchStores = async () => {
+      try {
+        const response = await fetch('/api/stores');
+        const data = await response.json();
+        setAllStores(data);
+        setFilteredStores(data);
+        setNearestStores(data);
+        setDataLoaded(true); // Set dataLoaded flag to true after data is loaded
+      } catch (error) {
+        console.error('Error fetching store data:', error);
+      }
+    };
+  
+    fetchStores();
+  }, []);
+  
+  useEffect(() => {
+    if (autocomplete && dataLoaded) {
+      const place = autocomplete.getPlace();
+      if (place && place.geometry) {
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        filterStoresByRadius(lat, lng, radius);
+        setMapCenter({ lat, lng });
+        setZoom(14);
+      }
+    }
+  }, [autocomplete, dataLoaded, radius]);
+  
 
   const filterStoresByRadius = (lat: number, lng: number, radius: number) => {
-    const storesWithDistance = storeLocations.map(store => ({
+    const storesWithDistance = allStores.map(store => ({
       ...store,
       distance: calculateDistance(lat, lng, parseFloat(store.lat), parseFloat(store.lng))
     }));
@@ -110,7 +142,7 @@ const StoreList = () => {
         setZoom(14);
       }
     } else if (searchMode === 'keyword') {
-      const filtered = storeLocations.map(store => ({
+      const filtered = allStores.map(store => ({
         ...store,
         distance: calculateDistance(mapCenter.lat, mapCenter.lng, parseFloat(store.lat), parseFloat(store.lng))
       })).filter(store => 
@@ -124,7 +156,7 @@ const StoreList = () => {
 
   const handleClearSearch = () => {
     setSearchTerm('');
-    setFilteredStores(storeLocations);
+    setFilteredStores(allStores);
     setMapCenter(initialCenter);
     setZoom(initialZoom);
     setNoStoresFound(false);
@@ -157,7 +189,7 @@ const StoreList = () => {
 
   useEffect(() => {
     if (searchMode === 'keyword') {
-      const filtered = storeLocations.map(store => ({
+      const filtered = allStores.map(store => ({
         ...store,
         distance: calculateDistance(mapCenter.lat, mapCenter.lng, parseFloat(store.lat), parseFloat(store.lng))
       })).filter(store => 
@@ -171,6 +203,7 @@ const StoreList = () => {
 
   return (
     <LoadScript googleMapsApiKey="AIzaSyANKF35eBMMoclISsuMZ95Gdgt3EtkF6mI" libraries={libraries}>
+      {dataLoaded && (
       <Container sx={{ overflow: 'hidden', height: '100vh', maxWidth: '100% !important' }}>
         <Grid container height="100vh" wrap="nowrap" direction={{ xs: 'column', md: 'row' }}>
           <Grid item xs={12} md={3} display="flex" flexDirection="column" overflow="auto" borderRight={{ md: '1px solid #ddd' }} sx={{ p: 2, order: { xs: 2, md: 1 } }}>
@@ -289,6 +322,7 @@ const StoreList = () => {
           </Grid>
         </Grid>
       </Container>
+      )}
     </LoadScript>
   );
 };
