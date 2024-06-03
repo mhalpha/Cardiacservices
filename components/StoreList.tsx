@@ -39,11 +39,15 @@ const StoreList = () => {
   const [mapCenter, setMapCenter] = useState(initialCenter);
   const [zoom, setZoom] = useState(initialZoom);
   const [dataLoaded, setDataLoaded] = useState(false);
+  const [scriptLoaded, setScriptLoaded] = useState(false);
 
   useEffect(() => {
     const fetchStores = async () => {
       try {
         const response = await fetch('/api/stores');
+        if (!response.ok) {
+          throw new Error(`Error fetching data: ${response.statusText}`);
+        }
         const data = await response.json();
         setAllStores(data);
         setFilteredStores(data);
@@ -53,10 +57,10 @@ const StoreList = () => {
         console.error('Error fetching store data:', error);
       }
     };
-  
+
     fetchStores();
   }, []);
-  
+
   useEffect(() => {
     if (autocomplete && dataLoaded) {
       const place = autocomplete.getPlace();
@@ -69,7 +73,6 @@ const StoreList = () => {
       }
     }
   }, [autocomplete, dataLoaded, radius]);
-  
 
   const filterStoresByRadius = (lat: number, lng: number, radius: number) => {
     const storesWithDistance = allStores.map(store => ({
@@ -145,8 +148,8 @@ const StoreList = () => {
       const filtered = allStores.map(store => ({
         ...store,
         distance: calculateDistance(mapCenter.lat, mapCenter.lng, parseFloat(store.lat), parseFloat(store.lng))
-      })).filter(store => 
-        store.centre_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      })).filter(store =>
+        store.centre_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         store.address.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredStores(filtered);
@@ -192,8 +195,8 @@ const StoreList = () => {
       const filtered = allStores.map(store => ({
         ...store,
         distance: calculateDistance(mapCenter.lat, mapCenter.lng, parseFloat(store.lat), parseFloat(store.lng))
-      })).filter(store => 
-        store.centre_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      })).filter(store =>
+        store.centre_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         store.address.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredStores(filtered);
@@ -202,42 +205,67 @@ const StoreList = () => {
   }, [searchTerm, searchMode]);
 
   return (
-    <LoadScript googleMapsApiKey="AIzaSyANKF35eBMMoclISsuMZ95Gdgt3EtkF6mI" libraries={libraries}>
-      {dataLoaded && (
-      <Container sx={{ overflow: 'hidden', height: '100vh', maxWidth: '100% !important' }}>
-        <Grid container height="100vh" wrap="nowrap" direction={{ xs: 'column', md: 'row' }}>
-          <Grid item xs={12} md={3} display="flex" flexDirection="column" overflow="auto" borderRight={{ md: '1px solid #ddd' }} sx={{ p: 2, order: { xs: 2, md: 1 } }}>
-            <Box mb={2} display="flex" justifyContent="center">
-              <ToggleButtonGroup
-                value={searchMode}
-                exclusive
-                onChange={handleSearchModeChange}
-                aria-label="search mode"
-                sx={{
-                  overflow: 'hidden',
-                  '& .MuiToggleButton-root': {
-                    transition: 'all 0.3s',
-                  },
-                  '& .Mui-selected': {
-                    backgroundColor: '#C8102E !important',
-                    color: 'white !important',
-                    '&:hover': {
-                      backgroundColor: '#C8102E',
+    <LoadScript
+      googleMapsApiKey="AIzaSyANKF35eBMMoclISsuMZ95Gdgt3EtkF6mI"
+      libraries={libraries}
+      loadingElement={<div>Loading...</div>}
+      onLoad={() => setScriptLoaded(true)}
+      onError={(e) => console.error('Error loading Google Maps API:', e)}
+    >
+      {scriptLoaded && dataLoaded && (
+        <Container sx={{ overflow: 'hidden', height: '100vh', maxWidth: '100% !important' }}>
+          <Grid container height="100vh" wrap="nowrap" direction={{ xs: 'column', md: 'row' }}>
+            <Grid item xs={12} md={3} display="flex" flexDirection="column" overflow="auto" borderRight={{ md: '1px solid #ddd' }} sx={{ p: 2, order: { xs: 2, md: 1 } }}>
+              <Box mb={2} display="flex" justifyContent="center">
+                <ToggleButtonGroup
+                  value={searchMode}
+                  exclusive
+                  onChange={handleSearchModeChange}
+                  aria-label="search mode"
+                  sx={{
+                    overflow: 'hidden',
+                    '& .MuiToggleButton-root': {
+                      transition: 'all 0.3s',
                     },
-                  },
-                }}
-              >
-                <ToggleButton value="autocomplete" aria-label="search by autocomplete">
-                  Postcode
-                </ToggleButton>
-                <ToggleButton value="keyword" aria-label="search by keyword">
-                  Keyword
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </Box>
-            <Box mb={2} width="100%">
-              {searchMode === 'autocomplete' ? (
-                <Autocomplete onLoad={handleLoad}>
+                    '& .Mui-selected': {
+                      backgroundColor: '#C8102E !important',
+                      color: 'white !important',
+                      '&:hover': {
+                        backgroundColor: '#C8102E',
+                      },
+                    },
+                  }}
+                >
+                  <ToggleButton value="autocomplete" aria-label="search by autocomplete">
+                    Postcode
+                  </ToggleButton>
+                  <ToggleButton value="keyword" aria-label="search by keyword">
+                    Keyword
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+              <Box mb={2} width="100%">
+                {searchMode === 'autocomplete' ? (
+                  <Autocomplete onLoad={handleLoad}>
+                    <TextField
+                      fullWidth
+                      InputProps={{
+                        sx: { borderRadius: 10 },
+                        endAdornment: searchTerm ? (
+                          <InputAdornment position="end">
+                            <IconButton onClick={handleClearSearch}>
+                              <ClearIcon />
+                            </IconButton>
+                          </InputAdornment>
+                        ) : null,
+                      }}
+                      placeholder="Search by name or postcode"
+                      inputRef={searchInputRef}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </Autocomplete>
+                ) : (
                   <TextField
                     fullWidth
                     InputProps={{
@@ -250,78 +278,59 @@ const StoreList = () => {
                         </InputAdornment>
                       ) : null,
                     }}
-                    placeholder="Search by name or postcode"
-                    inputRef={searchInputRef}
+                    placeholder="Search by keyword"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
-                </Autocomplete>
-              ) : (
-                <TextField
-                  fullWidth
-                  InputProps={{
-                    sx: { borderRadius: 10 },
-                    endAdornment: searchTerm ? (
-                      <InputAdornment position="end">
-                        <IconButton onClick={handleClearSearch}>
-                          <ClearIcon />
-                        </IconButton>
-                      </InputAdornment>
-                    ) : null,
-                  }}
-                  placeholder="Search by keyword"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+                )}
+              </Box>
+              {searchMode === 'autocomplete' && (
+                <FormControl fullWidth sx={{ mb: 2 }}>
+                  <InputLabel>Radius</InputLabel>
+                  <Select
+                    value={radius}
+                    onChange={handleRadiusChange}
+                  >
+                    <MenuItem value={5}>5 km</MenuItem>
+                    <MenuItem value={10}>10 km</MenuItem>
+                    <MenuItem value={20}>20 km</MenuItem>
+                    <MenuItem value={50}>50 km</MenuItem>
+                  </Select>
+                </FormControl>
               )}
-            </Box>
-            {searchMode === 'autocomplete' && (
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Radius</InputLabel>
-                <Select
-                  value={radius}
-                  onChange={handleRadiusChange}
-                >
-                  <MenuItem value={5}>5 km</MenuItem>
-                  <MenuItem value={10}>10 km</MenuItem>
-                  <MenuItem value={20}>20 km</MenuItem>
-                  <MenuItem value={50}>50 km</MenuItem>
-                </Select>
-              </FormControl>
-            )}
-            {noStoresFound ? (
-              searchMode === 'autocomplete' ? (
-                <>
+              {noStoresFound ? (
+                searchMode === 'autocomplete' ? (
+                  <>
+                    <Typography variant="h6" color="textSecondary" align="center">
+                      No services found within the selected radius.
+                    </Typography>
+                    <Typography variant="h6" color="textSecondary" align="center">
+                      Nearest services:
+                    </Typography>
+                    {nearestStores.map((store, index) => (
+                      <Box key={index} mb={2} id={`store-${index}`} className={selectedStore === index ? 'highlight' : ''}>
+                        <StoreCard store={store} onClick={() => handleStoreClick(store, index)} showDistance />
+                      </Box>
+                    ))}
+                  </>
+                ) : (
                   <Typography variant="h6" color="textSecondary" align="center">
-                    No services found within the selected radius.
+                    No services found with that name. Please try again with a different name.
                   </Typography>
-                  <Typography variant="h6" color="textSecondary" align="center">
-                    Nearest services:
-                  </Typography>
-                  {nearestStores.map((store, index) => (
-                    <Box key={index} mb={2} id={`store-${index}`} className={selectedStore === index ? 'highlight' : ''}>
-                      <StoreCard store={store} onClick={() => handleStoreClick(store, index)} showDistance />
-                    </Box>
-                  ))}
-                </>
+                )
               ) : (
-                <Typography variant="h6" color="textSecondary" align="center">
-                  No services found with that name. Please try again with a different name.
-                </Typography>
-              )
-            ) : (
-              filteredStores.map((store, index) => (
-                <Box key={index} mb={2} id={`store-${index}`} className={selectedStore === index ? 'highlight' : ''}>
-                  <StoreCard store={store} onClick={() => handleStoreClick(store, index)} showDistance={false} />
-                </Box>
-              ))
-            )}
+                filteredStores.map((store, index) => (
+                  <Box key={index} mb={2} id={`store-${index}`} className={selectedStore === index ? 'highlight' : ''}>
+                    <StoreCard store={store} onClick={() => handleStoreClick(store, index)} showDistance={false} />
+                  </Box>
+                ))
+              )}
+            </Grid>
+            <Grid item xs={12} md={9} sx={{ height: { xs: '50vh', md: '100vh' }, order: { xs: 1, md: 2 } }}>
+              <StoreMap ref={mapRef} stores={filteredStores} nearestStores={nearestStores} center={mapCenter} zoom={zoom} showNearestMarkers={noStoresFound && searchMode === 'autocomplete'} onMarkerClick={handleMapMarkerClick} onInfoWindowClose={handleInfoWindowClose} />
+            </Grid>
           </Grid>
-          <Grid item xs={12} md={9} sx={{ height: { xs: '50vh', md: '100vh' }, order: { xs: 1, md: 2 } }}>
-            <StoreMap ref={mapRef} stores={filteredStores} nearestStores={nearestStores} center={mapCenter} zoom={zoom} showNearestMarkers={noStoresFound && searchMode === 'autocomplete'} onMarkerClick={handleMapMarkerClick} onInfoWindowClose={handleInfoWindowClose} />
-          </Grid>
-        </Grid>
-      </Container>
+        </Container>
       )}
     </LoadScript>
   );
