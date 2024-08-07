@@ -1,12 +1,12 @@
 
 import { NextPage } from 'next';
 import Layout from '../components/Layout';
-import StoreList from '../components/StoreList';
+import ServiceList from '../components/ServiceList';
 
 const Home: NextPage = () => {
   return (
     <Layout>
-      <StoreList />
+      <ServiceList />
     </Layout>
   );
 };

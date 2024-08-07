@@ -1,169 +1,317 @@
+
 /* global.css */
 
 /* Reset some default browser styles */
+
 * {
+
   margin: 0;
+
   padding: 0;
+
   box-sizing: border-box;
+
 }
 
 /* Body styles */
+
 body {
+
   font-family: 'Roboto', sans-serif;
+
   line-height: 1.6;
+
   background-color: #f5f5f5;
-  overflow: hidden; /* Prevents body scroll */
+
 }
 
 /* Container styles */
+
 .MuiContainer-root {
-  max-width: 100% !important; /* Ensure the container is 100% width for all breakpoints */
-  padding-left: 16px; /* Adjust as needed */
-  padding-right: 16px; /* Adjust as needed */
+
+  max-width: 100% !important;
+
+  padding-left: 0px;
+
+  padding-right: 0px;
+
 }
 
 /* Utility classes for padding and margin */
+
 .p-1 {
+
   padding: 0.25rem;
+
 }
+
 .p-2 {
+
   padding: 0.5rem;
+
 }
+
 .p-3 {
+
   padding: 0.75rem;
+
 }
+
 .p-4 {
+
   padding: 1rem;
+
 }
 
 .m-1 {
+
   margin: 0.25rem;
+
 }
+
 .m-2 {
+
   margin: 0.5rem;
+
 }
+
 .m-3 {
+
   margin: 0.75rem;
+
 }
+
 .m-4 {
+
   margin: 1rem;
+
 }
 
 /* Grid layout for responsive design */
+
 .grid-container {
+
   display: grid;
+
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+
   gap: 1rem;
+
 }
 
-/* Styles for the map and list containers */
-#map-container {
-  height: 100vh;
-  width: 100%;
-}
+/* Panel styles */
 
 #list-container {
-  height: 100vh;
+
+  height: 95vh;
+
+  width: 400px;
+
   overflow-y: auto;
+
   padding: 1rem;
+
+  background-color: rgba(255, 255, 255, 0.9);
+
+  z-index: 10;
+
+  position: absolute;
+
+  top: 20px;
+
+  left: 20px;
+
+  border-radius: 20px;
+
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
+
+  transition: all 0.3s ease;
+
 }
 
+/* Make sure the map is full screen */
+
+#map-container {
+
+  height: 100vh;
+
+  width: 100%;
+
+  position: relative;
+
+}
+
+/* Adjustments for smaller screens */
+
 @media (max-width: 960px) {
-  #map-container {
-    height: 50vh; /* Adjust height for smaller screens */
-  }
+
   #list-container {
+
+    width: 90%;
+
     height: 50vh;
+
+    bottom: 0;
+
+    top: auto;
+
+    border-radius: 20px 20px 0 0;
+
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+
+    left: 0px;
+
   }
+
+  #map-container {
+
+    height: 60vh;
+
+  }
+
 }
 
 /* Button styles */
+
 .button {
+
   background-color: #6d45a5;
+
   color: #fff;
+
   border: none;
+
   padding: 0.5rem 1rem;
+
   cursor: pointer;
+
   transition: background-color 0.3s ease;
+
 }
 
 .button:hover {
+
   background-color: #3700b3;
+
 }
 
-/* globals.css */
+/* Highlight animation for selected items */
+
 .highlight {
+
   animation: highlight-animation 1s forwards;
+
   background-color: #C8102E;
+
   color: white;
+
   border-radius: 10px;
+
 }
 
 @keyframes highlight-animation {
+
   0% {
+
     background-color: transparent;
+
   }
+
   100% {
+
     background-color: #C8102E;
+
     color: white;
+
   }
+
 }
+
+/* Styles for selected toggle buttons */
 
 .MuiToggleButton-root.Mui-selected {
+
   background-color: #C8102E !important;
+
   color: white !important;
+
 }
 
+/* Scrollbar styling */
+
 ::-webkit-scrollbar {
+
   width: 6px;
+
   height: 6px;
+
 }
 
 ::-webkit-scrollbar-thumb {
+
   background: #888;
+
   border-radius: 10px;
+  margin-block: 15px;
+}
+::-webkit-scrollbar-track {
+  
+  margin-block: 15px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
+
   background: #555;
+
 }
 
 /* Sticky header */
-.sticky-header {
-  position: sticky;
-  top: 0;
-  z-index: 1000;
-}
 
-/* global.css */
 .app-bar {
+
   transition: transform 0.5s ease-in-out;
+
 }
 
-/* global.css */
-
-/* global.css */
+/* Other specific styles */
 
 .MuiCardContent-root {
+
   padding: 16px !important;
+
 }
 
 .MuiTypography-root {
+
   margin-bottom: 8px !important;
+
 }
 
 .info-window-content {
+
   display: flex;
+
   flex-direction: column;
+
   align-items: flex-start;
+
   padding: 10px;
+
   width: 250px;
+
   height: 250px;
+
 }
 
 .info-window-content > * {
+
   margin-bottom: 8px;
+
   white-space: nowrap;
+
   overflow: hidden;
+
   text-overflow: ellipsis;
+
 }
+ 
