@@ -1,5 +1,5 @@
-import React, { forwardRef, useImperativeHandle, useRef, useState } from 'react';
-import { GoogleMap, Marker, InfoWindow } from '@react-google-maps/api';
+import React, { forwardRef, useImperativeHandle, useRef, useState, useEffect, useMemo } from 'react';
+import { GoogleMap, Marker, InfoWindow, MarkerClusterer } from '@react-google-maps/api';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
@@ -9,9 +9,10 @@ interface Store {
  address: string;
  centre_phone_1: string;
  primary_email: string;
- lat: string;
- lng: string;
+ lat: string | number;
+ lng: string | number;
  website: string;
+ distance?: number;
 }
 interface ServiceMapProps {
  stores: Store[];
@@ -22,6 +23,7 @@ interface ServiceMapProps {
  onMarkerClick: (store: Store, index: number) => void;
  onInfoWindowClose: () => void;
 }
+// Memoized container style to prevent recreating on every render
 const containerStyle = {
  width: '100%',
  height: '100%',
@@ -29,81 +31,194 @@ const containerStyle = {
 const ServiceMap = forwardRef((props: ServiceMapProps, ref) => {
  const { stores, nearestStores, center, zoom, showNearestMarkers, onMarkerClick, onInfoWindowClose } = props;
  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
- const mapRef = useRef<google.maps.Map | null>(null);
+ const mapRef = useRef<any>(null);
+ const [mapLoaded, setMapLoaded] = useState(false);
+ // Expose methods to parent component
  useImperativeHandle(ref, () => ({
    handleStoreClick(store: Store) {
      setSelectedStore(store);
    },
-   fitBounds(bounds: google.maps.LatLngBounds) {
+   fitBounds(bounds: any) {
      if (mapRef.current) {
        mapRef.current.fitBounds(bounds);
      }
    },
  }));
- const allMarkers = showNearestMarkers ? [...stores, ...nearestStores] : stores;
+ // Memoize markers to prevent unnecessary recalculations
+ const allMarkers = useMemo(() => {
+   if (showNearestMarkers) {
+     // Create unique set of markers by combining both arrays and filtering out duplicates
+     const uniqueStores = new Map<string, Store>();
+     // Add regular stores first
+     stores.forEach(store => {
+       const key = `${store.lat}-${store.lng}`;
+       uniqueStores.set(key, store);
+     });
+     // Then add nearest stores (only if they're not already in the map)
+     nearestStores.forEach(store => {
+       const key = `${store.lat}-${store.lng}`;
+       if (!uniqueStores.has(key)) {
+         uniqueStores.set(key, store);
+       }
+     });
+     return Array.from(uniqueStores.values());
+   } else {
+     return stores;
+   }
+ }, [stores, nearestStores, showNearestMarkers]);
+ // Handle map load event
+ const handleMapLoad = (map: any) => {
+   console.log("Map loaded successfully");
+   mapRef.current = map;
+   setMapLoaded(true);
+ };
+ // Update the map when center or zoom changes
+ useEffect(() => {
+   if (mapRef.current) {
+     mapRef.current.panTo(center);
+     mapRef.current.setZoom(zoom);
+   }
+ }, [center, zoom]);
+ // Reset selected store when stores change
+ useEffect(() => {
+   setSelectedStore(null);
+ }, [stores]);
+ // Memoize the marker click handler
+ const handleMarkerClick = (store: Store, index: number) => {
+   setSelectedStore(store);
+   onMarkerClick(store, index);
+ };
+ // Map options
+ const mapOptions = {
+   gestureHandling: 'greedy',
+   disableDefaultUI: true,
+   clickableIcons: false,
+   zoomControl: true,
+   maxZoom: 18,
+   minZoom: 3,
+   mapTypeControl: false,
+   streetViewControl: false,
+   rotateControl: false,
+   scaleControl: false,
+   fullscreenControl: false,
+   tilt: 0,
+ };
+ // Cluster options - defined inside component to avoid 'google is not defined' error
+ const clusterOptions = {
+   gridSize: 50,
+   maxZoom: 15,
+   minimumClusterSize: 3,
+ };
  return (
 <GoogleMap
      mapContainerStyle={containerStyle}
      center={center}
      zoom={zoom}
-     onLoad={(map) => {
-       mapRef.current = map;
-     }}
-     options={{
-       gestureHandling: 'greedy',
-       fullscreenControl: false,    // Turn off fullscreen control
-       streetViewControl: false,    // Turn off street view control
-       mapTypeControl: false,       // Turn off map type control (map/satellite toggle)
-     }}
+     onLoad={handleMapLoad}
+     options={mapOptions}
 >
-     {allMarkers.map((store, index) => (
+     {mapLoaded && (
+<MarkerClusterer options={clusterOptions}>
+         {(clusterer) => (
+<div>
+             {allMarkers.map((store, index) => (
 <Marker
-         key={index}
-         position={{ lat: parseFloat(store.lat), lng: parseFloat(store.lng) }}
-         onClick={() => {
-           setSelectedStore(store);
-           onMarkerClick(store, index);
-         }}
-         zIndex={selectedStore && selectedStore.lat === store.lat && selectedStore.lng === store.lng ? 1000 : 1}
-       />
-     ))}
+                 key={`${store.lat}-${store.lng}-${index}`}
+                 position={{
+                   lat: typeof store.lat === 'string' ? parseFloat(store.lat) : store.lat as number,
+                   lng: typeof store.lng === 'string' ? parseFloat(store.lng) : store.lng as number
+                 }}
+                 onClick={() => handleMarkerClick(store, index)}
+                 clusterer={clusterer}
+                 zIndex={selectedStore && store &&
+                   typeof selectedStore.lat !== undefined && typeof store.lat !== undefined &&
+                   typeof selectedStore.lng !== undefined && typeof store.lng !== undefined &&
+                   String(selectedStore.lat) === String(store.lat) &&
+                   String(selectedStore.lng) === String(store.lng)
+                   ? 1000 : 1}
+               />
+             ))}
+</div>
+         )}
+</MarkerClusterer>
+     )}
      {selectedStore && (
 <InfoWindow
-         position={{ lat: parseFloat(selectedStore.lat), lng: parseFloat(selectedStore.lng) }}
+         position={{
+           lat: typeof selectedStore.lat === 'string' ? parseFloat(selectedStore.lat) : selectedStore.lat as number,
+           lng: typeof selectedStore.lng === 'string' ? parseFloat(selectedStore.lng) : selectedStore.lng as number
+         }}
          onCloseClick={() => {
            setSelectedStore(null);
            onInfoWindowClose();
          }}
-         options={{ pixelOffset: new google.maps.Size(0, -30) }}
+         // Define options inline to avoid 'google is not defined' error
+         options={{
+           pixelOffset: {
+             equals: () => false, // Stub method required by Google Maps API
+             x: 0,
+             y: -30
+           } as any
+         }}
 >
 <Box sx={{ width: '250px' }}>
-<Typography variant="h6" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+<Typography
+             variant="subtitle1"
+             sx={{
+               whiteSpace: 'nowrap',
+               overflow: 'hidden',
+               textOverflow: 'ellipsis',
+               fontWeight: 500
+             }}
+>
              {selectedStore.centre_name}
 </Typography>
-<Box display="flex" alignItems="center" mb={1}>
-<LocationOnIcon sx={{ mr: 1 }} />
-<Typography variant="body2" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+<Box display="flex" alignItems="flex-start" mb={1}>
+<LocationOnIcon sx={{ mr: 1, color: '#C8102E', fontSize: '1.2rem', mt: 0.2 }} />
+<Typography
+               variant="body2"
+               sx={{
+                 whiteSpace: 'nowrap',
+                 overflow: 'hidden',
+                 textOverflow: 'ellipsis',
+                 lineHeight: 1.4,
+                 maxWidth: 'calc(100% - 32px)' // Account for icon
+               }}
+>
                {selectedStore.address}
 </Typography>
 </Box>
 <Box display="flex" alignItems="center" mb={1}>
-<PhoneIcon sx={{ mr: 1 }} />
+<PhoneIcon sx={{ mr: 1, color: '#C8102E', fontSize: '1.2rem' }} />
 <Typography variant="body2">{selectedStore.centre_phone_1}</Typography>
 </Box>
-<Box display="flex" alignItems="center" mb={2}>
-<EmailIcon sx={{ mr: 1 }} />
-<Typography variant="body2" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+<Box display="flex" alignItems="flex-start" mb={1.5}>
+<EmailIcon sx={{ mr: 1, color: '#C8102E', fontSize: '1.2rem', mt: 0.2 }} />
+<Typography
+               variant="body2"
+               sx={{
+                 whiteSpace: 'nowrap',
+                 overflow: 'hidden',
+                 textOverflow: 'ellipsis',
+                 lineHeight: 1.4,
+                 maxWidth: 'calc(100% - 32px)' // Account for icon
+               }}
+>
                {selectedStore.primary_email}
 </Typography>
 </Box>
 <Box display="flex" justifyContent="center">
 <Button
                variant="outlined"
+               size="small"
                sx={{
+                 width: 1,
                  borderColor: '#C8102E',
                  color: 'black',
+                 textTransform: 'none',
                  '&:hover': {
                    borderColor: '#C8102E',
+                   backgroundColor: 'rgba(200, 16, 46, 0.04)'
                  },
                }}
                href={`https://cardiac-services-directory.heartfoundation.org.au/${selectedStore.website}`}
@@ -118,4 +233,5 @@ const ServiceMap = forwardRef((props: ServiceMapProps, ref) => {
 </GoogleMap>
  );
 });
-export default ServiceMap;
+// Use React.memo to prevent unnecessary re-renders
+export default React.memo(ServiceMap);

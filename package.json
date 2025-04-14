@@ -24,6 +24,7 @@
     "typescript": "latest"
   },
   "devDependencies": {
+    "@types/google.maps": "^3.58.1",
     "@types/node": "20.12.12",
     "@types/react": "^17.0.37",
     "eslint": "7.32.0",
