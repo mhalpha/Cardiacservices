@@ -1,4 +1,4 @@
-// ServiceCard.tsx - Updated with sleek red bottom border for selected state
+// ServiceCard.tsx - Complete component with new styling
 
 import React from 'react';
 
@@ -71,49 +71,84 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(({
 
       sx={{
 
-        borderRadius: '12px',
+        borderRadius: '10px',
 
         cursor: 'pointer',
 
-        mb: 0, // No margin bottom - container handles spacing
+        mb: 0,
 
-        transform: isSelected ? 'scale(1.02)' : 'none',
+        border: isSelected ? '2px solid #C8102E' : '1px solid rgba(0,0,0,0.08)',
 
-        boxShadow: isSelected ? 3 : 1,
+        boxShadow: isSelected ? '0 4px 12px rgba(200, 16, 46, 0.2)' : '0 2px 8px rgba(0,0,0,0.04)',
 
         width: '100%',
 
         transition: 'all 0.2s ease-in-out',
 
-        position: 'relative', // Required for the pseudo-element positioning
+        '&:hover': {
 
-        '&::after': isSelected ? {
+          boxShadow: '0 6px 16px rgba(0,0,0,0.1)',
 
-          content: '""',
+          transform: 'translateY(-2px)'
 
-          position: 'absolute',
+        },
 
-          bottom: 0,
+        '&:active': {
 
-          left: 0,
+          transform: 'translateY(0px)',
 
-          right: 0,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
 
-          height: '2px', // Thin border
+          transition: 'all 0.1s ease-in-out',
 
-          backgroundColor: '#C8102E', // Heart Foundation red color
+        },
 
-          zIndex: 1,
+        position: 'relative',
 
-        } : {},
+        overflow: 'visible',
+
+        backgroundColor: isSelected ? 'rgba(255, 248, 248, 0.6)' : 'white',
 
         ...sx
 
       }}
 >
+
+      {/* Program type badge - positioned at top right corner */}
+<Box 
+
+        sx={{
+
+          position: 'absolute',
+
+          top: -8,
+
+          right: 12,
+
+          borderRadius: '12px',
+
+          padding: '2px 8px',
+
+          backgroundColor: store.program_type === 'Public' ? '#1976d2' : '#C8102E',
+
+          color: 'white',
+
+          fontSize: '0.7rem',
+
+          fontWeight: 'bold',
+
+          boxShadow: '0 2px 4px rgba(0,0,0,0.15)'
+
+        }}
+>
+
+        {store.program_type}
+</Box>
 <CardContent sx={{
 
-        padding: 2,
+        padding: 2.5,
+
+        paddingTop: 3,
 
         '&:last-child': { pb: 2 },
 
@@ -122,51 +157,86 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(({
         flexDirection: 'column'
 
       }}>
-<Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
-<Typography variant="subtitle1" component="h3" sx={{ fontWeight: 'medium', pr: 1 }}>
+<Typography variant="subtitle1" component="h3" sx={{ 
 
-            {store.service_name}
+          fontWeight: 600, 
+
+          mb: 2, 
+
+          color: '#333',
+
+          fontSize: '1rem',
+
+          lineHeight: 1.3
+
+        }}>
+
+          {store.service_name}
 </Typography>
-<Box 
-
-            component="span"
-
-            sx={{
-
-              fontSize: '0.75rem',
-
-              py: 0.25,
-
-              px: 1,
-
-              borderRadius: '4px',
-
-              backgroundColor: store.program_type === 'Public' ? 'rgba(25, 118, 210, 0.12)' : 'rgba(200, 16, 46, 0.12)',
-
-              color: store.program_type === 'Public' ? '#1976d2' : '#C8102E',
-
-              fontWeight: 500,
-
-              whiteSpace: 'nowrap',
-
-              flexShrink: 0
-
-            }}
->
-
-            {store.program_type}
-</Box>
-</Box>
 <Box display="flex" alignItems="flex-start" mb={1.5}>
-<LocationOnIcon sx={{ mr: 1, color: '#C8102E', fontSize: '1.2rem', mt: 0.2 }} />
-<Typography variant="body2" sx={{ lineHeight: 1.4 }}>{store.street_address}</Typography>
+<LocationOnIcon sx={{ 
+
+            mr: 1.5, 
+
+            color: '#C8102E', 
+
+            fontSize: '1.2rem', 
+
+            mt: 0.3,
+
+            flexShrink: 0
+
+          }} />
+<Typography variant="body2" sx={{ 
+
+            lineHeight: 1.4,
+
+            color: '#555',
+
+            fontSize: '0.85rem'
+
+          }}>
+
+            {store.street_address}
+</Typography>
 </Box>
 <Box display="flex" alignItems="center" mb={1.5}>
-<PhoneIcon sx={{ mr: 1, color: '#C8102E', fontSize: '1.2rem' }} />
-<Typography variant="body2">{store.phone_number}</Typography>
+<PhoneIcon sx={{ 
+
+            mr: 1.5, 
+
+            color: '#C8102E', 
+
+            fontSize: '1.2rem',
+
+            flexShrink: 0
+
+          }} />
+<Typography variant="body2" sx={{
+
+            color: '#555',
+
+            fontSize: '0.85rem'
+
+          }}>
+
+            {store.phone_number}
+</Typography>
 </Box>
 <Box display="flex" alignItems="flex-start" mb={1.5}>
-<EmailIcon sx={{ mr: 1, color: '#C8102E', fontSize: '1.2rem', mt: 0.2 }} />
+<EmailIcon sx={{ 
+
+            mr: 1.5, 
+
+            color: '#C8102E', 
+
+            fontSize: '1.2rem', 
+
+            mt: 0.3,
+
+            flexShrink: 0
+
+          }} />
 <Typography
 
             variant="body2"
@@ -181,7 +251,11 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(({
 
               textOverflow: 'ellipsis',
 
-              whiteSpace: 'nowrap'
+              whiteSpace: 'nowrap',
+
+              color: '#555',
+
+              fontSize: '0.85rem'
 
             }}
 >
@@ -191,22 +265,51 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(({
 </Box>
 
         {showDistance && store.distance !== undefined && (
-<Typography variant="body2" color="textSecondary" mb={1.5}>
+<Typography variant="body2" sx={{
 
-            Approx. {store.distance.toFixed(1)} km away
+            mb: 1.5,
+
+            color: '#666',
+
+            fontSize: '0.85rem',
+
+            fontWeight: 500,
+
+            display: 'flex',
+
+            alignItems: 'center'
+
+          }}>
+<Box component="span" sx={{
+
+              display: 'inline-block',
+
+              width: 6,
+
+              height: 6,
+
+              borderRadius: '50%',
+
+              backgroundColor: '#C8102E',
+
+              mr: 1
+
+            }} />
+
+            {store.distance.toFixed(1)} km away
 </Typography>
 
         )}
-<Box display="flex" justifyContent="center" mt={0.5}>
+<Box display="flex" justifyContent="flex-end" mt={1}>
 <Button
 
-            variant="text"
+            variant="outlined"
 
             size="small"
 
             sx={{
 
-              width: 1,
+              borderColor: '#C8102E',
 
               color: '#C8102E',
 
@@ -214,13 +317,17 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(({
 
               fontWeight: 500,
 
-              borderRadius: '8px',
+              borderRadius: '6px',
 
-              py: 0.75,
+              py: 0.5,
+
+              px: 2,
 
               '&:hover': {
 
-                backgroundColor: 'rgba(200, 16, 46, 0.08)'
+                backgroundColor: 'rgba(200, 16, 46, 0.04)',
+
+                borderColor: '#C8102E'
 
               },
 

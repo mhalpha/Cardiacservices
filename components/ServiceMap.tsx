@@ -408,26 +408,20 @@ const ServiceMap = forwardRef((props: ServiceMapProps, ref) => {
 
                 {allMarkers.map((store, index) => {
 
-                  const lat = typeof store.lat === 'string' ? parseFloat(store.lat) : store.lat as number;
-
-                  const lng = typeof store.lng === 'string' ? parseFloat(store.lng) : store.lng as number;
-
+const lat = typeof store.lat === 'string' ? parseFloat(store.lat) || 0 : store.lat as number || 0;
+const lng = typeof store.lng === 'string' ? parseFloat(store.lng) || 0 : store.lng as number || 0;
                   return (
 <Marker
-
-                      key={`${lat}-${lng}-${index}`}
-
-                      position={{ lat, lng }}
-
-                      onClick={() => handleMarkerClick(store, index)}
-
-                      clusterer={clusterer}
-
-                      zIndex={selectedStore?.lat === store.lat && selectedStore?.lng === store.lng ? 1000 : 1}
-
-                      icon={getMarkerIcon(store.program_type)}
-
-                    />
+ key={`${lat}-${lng}-${index}`}
+ position={{
+   lat: isNaN(lat) ? 0 : lat,
+   lng: isNaN(lng) ? 0 : lng
+ }}
+ onClick={() => handleMarkerClick(store, index)}
+ clusterer={clusterer}
+ zIndex={selectedStore?.lat === store.lat && selectedStore?.lng === store.lng ? 1000 : 1}
+ icon={getMarkerIcon(store.program_type)}
+/>
 
                   );
 
@@ -441,30 +435,19 @@ const ServiceMap = forwardRef((props: ServiceMapProps, ref) => {
 
       )}
 
-      {selectedStore && (
+{selectedStore && (
 <InfoWindow
-
-          position={{
-
-            lat: typeof selectedStore.lat === 'string' ? parseFloat(selectedStore.lat) : selectedStore.lat as number,
-
-            lng: typeof selectedStore.lng === 'string' ? parseFloat(selectedStore.lng) : selectedStore.lng as number
-
-          }}
-
-          onCloseClick={() => {
-
-            setSelectedStore(null);
-
-            onInfoWindowClose();
-
-          }}
-
-          options={{
-
-            pixelOffset: new google.maps.Size(0, -30)
-
-          }}
+   position={{
+     lat: typeof selectedStore.lat === 'string' ? parseFloat(selectedStore.lat) || 0 : selectedStore.lat || 0,
+     lng: typeof selectedStore.lng === 'string' ? parseFloat(selectedStore.lng) || 0 : selectedStore.lng || 0
+   }}
+   onCloseClick={() => {
+     setSelectedStore(null);
+     onInfoWindowClose();
+   }}
+   options={{
+     pixelOffset: new google.maps.Size(0, -30)
+   }}
 >
 <Box sx={{ width: '250px' }}>
 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>

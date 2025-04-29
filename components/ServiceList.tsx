@@ -11,8 +11,9 @@ import CheckIcon from '@mui/icons-material/Check';
 import ServiceCard from './ServiceCard';
 import ServiceMap from './ServiceMap';
 import { Virtuoso } from 'react-virtuoso';
+import LoadingAnimation from './LoadingAnimation';
 
-// Define libraries as Libraries type instead of string[]
+// Define libraries as Libraries type
 const libraries: Libraries = ['places', 'geometry'];
 
 // Google Maps configuration
@@ -73,6 +74,7 @@ const ServiceList = () => {
 const mapRef = useRef<any>(null);
 const searchInputRef = useRef<HTMLInputElement>(null);
 const workerRef = useRef<Worker>();
+const virtuosoRef = useRef<any>(null);
 const [searchTerm, setSearchTerm] = useState('');
 const [radius, setRadius] = useState(10);
 const [filteredStores, setFilteredStores] = useState<Store[]>([]);
@@ -86,8 +88,9 @@ const [isListOpen, setIsListOpen] = useState(false);
 const [mapCenter, setMapCenter] = useState(initialCenter);
 const [zoom, setZoom] = useState(initialZoom);
 const [dataLoaded, setDataLoaded] = useState(false);
+const [showLoading, setShowLoading] = useState(true);
 const [programTypeFilter, setProgramTypeFilter] = useState<ProgramTypeFilter>('all');
-const virtuosoRef = useRef<any>(null);
+
 // Filter dropdown menu states
 const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
 const filterMenuOpen = Boolean(filterAnchorEl);
@@ -96,6 +99,9 @@ const theme = useTheme();
 const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
 const { isLoaded, loadError } = useJsApiLoader(googleMapsConfig);
+
+// Add global styles for animations
+
 
 // Initialize worker
 useEffect(() => {
@@ -130,9 +136,11 @@ const data = JSON.parse(result);
 setAllStores(data);
 setFilteredStores(data);
 setDataLoaded(true);
+// The animation will handle hiding itself through onComplete
 }
 } catch (error) {
 console.error('Error fetching store data:', error);
+setShowLoading(false); // Hide loading screen on error
 }
 };
 
@@ -253,7 +261,7 @@ const sortedFiltered = [...finalFiltered].sort((a, b) => (a.distance || 0) - (b.
 // Add locations to bounds for map
 if (sortedFiltered.length > 0) {
 sortedFiltered.forEach(store => {
-bounds.extend(new google.maps.LatLng(parseFloat(store.lat), parseFloat(store.lng)));
+bounds.extend(new google.maps.LatLng(parseFloat(store.lat) || 0, parseFloat(store.lng) || 0));
 });
 }
 
@@ -442,9 +450,9 @@ setIsListOpen(prev => !prev);
 // Get filter button text based on current filter
 const getFilterButtonText = () => {
 switch(programTypeFilter) {
-case 'public': return 'Public Services';
-case 'private': return 'Private Services';
-default: return 'All Services';
+case 'public': return 'Public';
+case 'private': return 'Private';
+default: return 'All';
 }
 };
 
@@ -483,7 +491,13 @@ Nearest services:
 </Box>
 
 {/* Adding container with spacer for first Virtuoso */}
-<Box sx={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', height: isMobile ? 'calc(100vh - 300px)' : 'calc(100vh - 310px)' }}>
+<Box sx={{
+overflow: 'hidden',
+display: 'flex',
+flexDirection: 'column',
+height: isMobile ? 'calc(100vh - 300px)' : 'calc(100vh - 310px)',
+backgroundColor: 'rgba(249, 250, 251, 0.8)'
+}}>
 {/* Top padding spacer */}
 <Box sx={{ height: '16px', flexShrink: 0 }} />
 
@@ -495,7 +509,10 @@ style={{ height: '100%' }}
 totalCount={nearestStores.length}
 initialTopMostItemIndex={selectedStore >= 0 ? selectedStore : 0}
 itemContent={index => (
-<div style={{ padding: '0 16px 16px 16px' }}>
+<div style={{
+padding: '8px 16px',
+opacity: 1,
+}}>
 <ServiceCard
 store={nearestStores[index]}
 onClick={() => handleStoreClick(nearestStores[index], index)}
@@ -509,7 +526,7 @@ showDistance={true}
 </Box>
 </>
 ) : (
-<Box sx={{ p: 2 }}>
+<Box sx={{ p: 2, backgroundColor: 'rgba(249, 250, 251, 0.8)' }}>
 <Typography variant="h6" color="textSecondary" align="center">
 No services found with that name.
 </Typography>
@@ -519,7 +536,13 @@ No services found with that name.
 
 // Adding container with spacer for second Virtuoso
 return (
-<Box sx={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', height: isMobile ? 'calc(100vh - 200px)' : 'calc(100vh - 210px)' }}>
+<Box sx={{
+overflow: 'hidden',
+display: 'flex',
+flexDirection: 'column',
+height: isMobile ? 'calc(100vh - 200px)' : 'calc(100vh - 210px)',
+backgroundColor: 'rgba(249, 250, 251, 0.8)'
+}}>
 {/* Top padding spacer */}
 <Box sx={{ height: '16px', flexShrink: 0 }} />
 
@@ -531,7 +554,10 @@ style={{ height: '100%' }}
 totalCount={filteredStores.length}
 initialTopMostItemIndex={selectedStore >= 0 ? selectedStore : 0}
 itemContent={index => (
-<div style={{ padding: '0 16px 16px 16px' }}>
+<div style={{
+padding: '8px 16px',
+opacity: 1,
+}}>
 <ServiceCard
 store={filteredStores[index]}
 onClick={() => handleStoreClick(filteredStores[index], index)}
@@ -560,18 +586,6 @@ borderRadius: 2,
 minWidth: 180,
 overflow: 'visible',
 mt: 1.5,
-'&:before': {
-content: '""',
-display: 'block',
-position: 'absolute',
-top: 0,
-right: 14,
-width: 10,
-height: 10,
-bgcolor: 'background.paper',
-transform: 'translateY(-50%) rotate(45deg)',
-zIndex: 0,
-},
 }
 }}
 >
@@ -645,8 +659,8 @@ Private Services
 </Menu>
 );
 
-if (!dataLoaded) {
-return <div>Loading data...</div>;
+if (!dataLoaded || showLoading) {
+return <LoadingAnimation onComplete={() => setShowLoading(false)} />;
 }
 
 return (
@@ -685,7 +699,7 @@ overflow: 'hidden',
 zIndex: 10
 }}>
 {/* Search mode toggle */}
-<Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', p: 1, backgroundColor: '#ebebeb' }}>
+<Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', p: 1, backgroundColor: 'rgba(249, 250, 251, 0.8)' }}>
 <Box sx={{ display: 'flex', borderRadius: 10, overflow: 'hidden', bgcolor: '#e0e0e0', p: '2px', width: '100%' }}>
 <Button
 size="small"
@@ -725,7 +739,7 @@ Service
 </Box>
 
 {/* Search row with filter button */}
-<Box sx={{ width: '100%', p: 1, display: 'flex', gap: 1, backgroundColor: '#ebebeb' }}>
+<Box sx={{ width: '100%', p: 1, display: 'flex', gap: 1, backgroundColor: 'rgba(249, 250, 251, 0.8)' }}>
 {/* Search input */}
 <Box sx={{ flex: 1 }}>
 {searchMode === 'autocomplete' ? (
@@ -824,7 +838,7 @@ whiteSpace: 'nowrap',
 minWidth: '110px',
 ...(programTypeFilter !== 'all' && {
 borderColor: '#C8102E',
-borderWidth: '1px',
+borderWidth: '1px'
 })
 }}
 >
@@ -836,28 +850,34 @@ borderWidth: '1px',
 {renderFilterMenu()}
 
 {/* Show List button */}
-<Box sx={{ width: '100%', p: 1, backgroundColor: '#ebebeb', display: 'flex', justifyContent: 'center' }}>
+<Box sx={{ width: '100%', p: 1, backgroundColor: 'rgba(249, 250, 251, 0.8)', display: 'flex', justifyContent: 'center' }}>
 <Button
-variant="contained"
-startIcon={<FormatListBulletedIcon />}
-onClick={toggleList}
-sx={{
-bgcolor: 'white',
-color: '#333',
-boxShadow: 1,
-borderRadius: 2,
-textTransform: 'none',
-fontSize: '0.8rem',
-'&:hover': { bgcolor: '#f5f5f5' },
-display: isListOpen ? 'none' : 'flex',
-width: '100%'
-}}
+ variant="contained"
+ startIcon={<FormatListBulletedIcon />}
+ onClick={toggleList}
+ sx={{
+   bgcolor: 'white',
+   color: '#333',
+   boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+   borderRadius: '8px',
+   textTransform: 'none',
+   fontSize: '0.9rem',
+   fontWeight: 500,
+   py: 1.2,
+   '&:hover': { bgcolor: 'white' },
+   display: isListOpen ? 'none' : 'flex',
+   width: '100%',
+   height: '40px',
+   border: '1px solid rgba(0,0,0,0.08)'
+   // Removed: position: 'relative' and the '&::before' pseudo-element
+ }}
 >
-Show List
+ View Service List
 </Button>
 </Box>
 </Box>
 ) : (
+/* Desktop search UI */
 <Paper elevation={3} sx={{ borderRadius: 3, overflow: 'hidden', display: 'flex', height: '50px', backgroundColor: 'rgba(255, 255, 255, 0.95)' }}>
 {/* Search mode toggle */}
 <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(0, 0, 0, 0.05)', p: 1, borderRight: '1px solid rgba(0, 0, 0, 0.1)' }}>
@@ -1000,27 +1020,34 @@ bgcolor: 'rgba(0,0,0,0.04)'
 </Paper>
 )}
 
+{/* Show List button - desktop */}
 {!isMobile && (
 <Box sx={{ position: 'absolute', left: 0, top: '60px', zIndex: 10 }}>
 <Button
-variant="contained"
-startIcon={<FormatListBulletedIcon />}
-onClick={toggleList}
-sx={{
-bgcolor: 'white',
-color: '#333',
-boxShadow: 2,
-borderRadius: 2,
-textTransform: 'none',
-px: 2,
-py: 1,
-fontSize: '0.8rem',
-'&:hover': { bgcolor: '#f5f5f5' },
-display: isListOpen ? 'none' : 'flex',
-width: '177px'
-}}
+     variant="contained"
+     startIcon={<FormatListBulletedIcon />}
+     onClick={toggleList}
+     sx={{
+       bgcolor: 'white',
+       color: '#333',
+       boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
+       borderRadius: '8px',  // Changed from '0 8px 8px 0' to '8px'
+       textTransform: 'none',
+       px: 2,
+       py: 1.2,
+       fontSize: '0.9rem',
+       fontWeight: 500,
+       '&:hover': {
+         bgcolor: 'white',
+         boxShadow: '0 6px 14px rgba(0,0,0,0.2)',
+       },
+       display: isListOpen ? 'none' : 'flex',
+       width: '178px',
+       height: '40px'
+       // Removed: borderLeft: '4px solid #C8102E'
+     }}
 >
-Show List
+     Show Services
 </Button>
 </Box>
 )}
@@ -1034,32 +1061,75 @@ left: isMobile ? 0 : '15%',
 width: isMobile ? '100%' : 300,
 height: isMobile && isListOpen ? 'calc(100vh - 140px)' : 'auto',
 zIndex: isMobile ? 15 : 5,
-display: isListOpen ? 'block' : 'none'
+opacity: isListOpen ? 1 : 0,
+visibility: isListOpen ? 'visible' : 'hidden',
+transform: isListOpen
+? 'translateY(0)'
+: (isMobile ? 'translateY(20px)' : 'translateX(-20px)'),
+transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+// Add subtle shadow effect that increases as the list appears
+'&::after': isListOpen ? {
+content: '""',
+position: 'absolute',
+inset: 0,
+boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+borderRadius: isMobile ? '20px 20px 0 0' : '12px',
+zIndex: -1
+} : {}
 }}>
 <Paper
 elevation={3}
 sx={{
-borderRadius: isMobile ? '16px 16px 0 0' : 3,
+borderRadius: isMobile ? '20px 20px 0 0' : '12px',
 width: '100%',
 height: isMobile ? 'calc(100vh - 140px)' : 'calc(100vh - 150px)',
 display: 'flex',
 flexDirection: 'column',
-backgroundColor: 'rgba(255, 255, 255, 0.95)',
+backgroundColor: 'rgba(255, 255, 255, 0.98)',
+overflow: 'hidden',
+boxShadow: '0 8px 24px rgba(0,0,0,0.12)'
 }}
 >
-{/* Close button */}
-<Box sx={{ position: 'absolute', top: 10, right: 10, zIndex: 1 }}>
+{/* List header */}
+<Box sx={{
+p: 2,
+borderBottom: '1px solid rgba(0,0,0,0.06)',
+display: 'flex',
+justifyContent: 'space-between',
+alignItems: 'center',
+backgroundColor: 'white'
+}}>
+<Typography variant="h6" sx={{
+fontWeight: 600,
+color: '#333',
+fontSize: '1.1rem'
+}}>
+{noStoresFound ? 'Nearest Services' : `Services ${filteredStores.length > 0 ? `(${filteredStores.length})` : ''}`}
+</Typography>
+
+{/* Improved close button */}
 <IconButton
 size="small"
 onClick={toggleList}
-sx={{ bgcolor: 'rgba(0, 0, 0, 0.05)', '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.1)' } }}
+sx={{
+bgcolor: 'rgba(0, 0, 0, 0.03)',
+'&:hover': {
+bgcolor: 'rgba(0, 0, 0, 0.08)'
+},
+width: 32,
+height: 32
+}}
 >
 <CloseIcon fontSize="small" />
 </IconButton>
 </Box>
 
-{/* List content */}
-<Box sx={{ flex: 1, overflow: 'hidden' }}>
+{/* List content - add a subtle background */}
+<Box sx={{
+flex: 1,
+overflow: 'hidden',
+backgroundColor: 'rgba(249, 250, 251, 0.8)'
+}}>
 {renderList()}
 </Box>
 </Paper>
