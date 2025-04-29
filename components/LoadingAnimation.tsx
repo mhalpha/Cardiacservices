@@ -126,7 +126,7 @@ const LoadingAnimation: React.FC<LoadingAnimationProps> = ({ onComplete }) => {
           }}
 >
 
-          Loading Cardiac Services
+          Loading all services
 </Typography>
 </Box>
 </Fade>

@@ -30,6 +30,7 @@ version: 'weekly'
 const createWorker = () => {
 const workerCode = `
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
+ if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
 const toRad = value => value * Math.PI / 180;
 const R = 6371;
 const dLat = toRad(lat2 - lat1);
@@ -90,6 +91,7 @@ const [zoom, setZoom] = useState(initialZoom);
 const [dataLoaded, setDataLoaded] = useState(false);
 const [showLoading, setShowLoading] = useState(true);
 const [programTypeFilter, setProgramTypeFilter] = useState<ProgramTypeFilter>('all');
+const [radiusAnchorEl, setRadiusAnchorEl] = useState<null | HTMLElement>(null);
 
 // Filter dropdown menu states
 const [filterAnchorEl, setFilterAnchorEl] = useState<null | HTMLElement>(null);
@@ -424,19 +426,29 @@ const handleLoad = useCallback((autocompleteInstance: google.maps.places.Autocom
 setAutocomplete(autocompleteInstance);
 }, []);
 
-const handleRadiusChange = useCallback((e: SelectChangeEvent<number>) => {
-const newRadius = Number(e.target.value);
-setRadius(newRadius);
-
-if (autocomplete) {
-const place = autocomplete.getPlace();
-if (place?.geometry?.location) {
-const lat = place.geometry.location.lat();
-const lng = place.geometry.location.lng();
-filterStoresByRadius(lat, lng, newRadius);
-}
-}
-}, [autocomplete, filterStoresByRadius]);
+const handleRadiusSelect = useCallback(async (newRadius: number) => {
+  setRadius(newRadius);
+  setRadiusAnchorEl(null);
+  if (autocomplete) {
+    const place = autocomplete.getPlace();
+    if (place?.geometry?.location) {
+      const lat = place.geometry.location.lat();
+      const lng = place.geometry.location.lng();
+      await filterStoresByRadius(lat, lng, newRadius);
+    }
+  } else {
+    // If no place selected but radius changed, reset to initial state
+    const programFiltered = programTypeFilter === 'all'
+      ? allStores
+      : allStores.filter(store =>
+          programTypeFilter === 'public'
+            ? store.program_type === 'Public'
+            : store.program_type === 'Private'
+        );
+    setFilteredStores(programFiltered);
+    setNoStoresFound(programFiltered.length === 0);
+  }
+ }, [autocomplete, filterStoresByRadius, programTypeFilter, allStores]);
 
 const handleSearchModeChange = useCallback(() => {
 setSearchMode(prev => prev === 'autocomplete' ? 'keyword' : 'autocomplete');
@@ -743,7 +755,14 @@ Service
 {/* Search input */}
 <Box sx={{ flex: 1 }}>
 {searchMode === 'autocomplete' ? (
-<Autocomplete onLoad={handleLoad} options={{ types: ['(regions)'], componentRestrictions: { country: 'au' } }}>
+  <Autocomplete
+ onLoad={handleLoad}
+ options={{
+   types: ['geocode'], // Changed from '(regions)' to 'geocode' for full address support
+   componentRestrictions: { country: 'au' },
+   fields: ['formatted_address', 'geometry']
+ }}
+>
 <TextField
 fullWidth
 variant="outlined"
@@ -753,7 +772,18 @@ inputRef={searchInputRef}
 value={searchTerm}
 onChange={(e) => setSearchTerm(e.target.value)}
 InputProps={{
-sx: { borderRadius: 3, height: '40px', fontSize: '1rem', backgroundColor: 'white' },
+  sx: {
+    borderRadius: '20px',
+    border: '1px solid rgba(0,0,0,0.2)',
+    backgroundColor: 'white',
+    '&:hover': {
+      borderColor: '#C8102E'
+    },
+    '&.Mui-focused': {
+      borderColor: '#C8102E',
+      boxShadow: '0 0 0 2px rgba(200, 16, 46, 0.2)'
+    }
+  },
 endAdornment: (
 <InputAdornment position="end">
 {searchTerm && (
@@ -761,20 +791,59 @@ endAdornment: (
 <ClearIcon fontSize="small" />
 </IconButton>
 )}
-{searchMode === 'autocomplete' && (
-<FormControl variant="standard" sx={{ width: 80, mx: 1 }}>
-<Select
-value={radius}
-onChange={handleRadiusChange}
-disableUnderline
-sx={{ fontSize: '0.9rem', '& .MuiSelect-select': { py: 0.5 } }}
+{isMobile && searchMode === 'autocomplete' && (
+<>
+<Button
+     variant="outlined"
+     size="small"
+     onClick={(e) => setRadiusAnchorEl(e.currentTarget)}
+     sx={{
+       borderColor: 'rgba(0,0,0,0.2)',
+       color: '#333',
+       textTransform: 'none',
+       borderRadius: '20px',
+       px: 2,
+       height: '32px',
+       fontSize: '0.9rem',
+       '&:hover': {
+         borderColor: '#C8102E',
+         backgroundColor: 'rgba(200, 16, 46, 0.04)'
+       }
+     }}
 >
-<MenuItem value={5}>5 km</MenuItem>
-<MenuItem value={10}>10 km</MenuItem>
-<MenuItem value={20}>20 km</MenuItem>
-<MenuItem value={50}>50 km</MenuItem>
-</Select>
-</FormControl>
+     {radius} km
+</Button>
+<Menu
+     anchorEl={radiusAnchorEl}
+     open={Boolean(radiusAnchorEl)}
+     onClose={() => setRadiusAnchorEl(null)}
+     MenuListProps={{
+       sx: {
+         py: 0,
+         borderRadius: '8px',
+         boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+       }
+     }}
+>
+     {[5, 10, 20, 50].map((value) => (
+<MenuItem
+         key={value}
+         onClick={() => handleRadiusSelect(value)}
+         sx={{
+           fontSize: '0.9rem',
+           fontWeight: radius === value ? 600 : 400,
+           bgcolor: radius === value ? 'rgba(200, 16, 46, 0.08)' : 'transparent',
+           '&:hover': {
+             bgcolor: 'rgba(0, 0, 0, 0.04)'
+           }
+         }}
+>
+         {value} km
+         {radius === value && <CheckIcon fontSize="small" sx={{ color: '#C8102E', ml: 1 }} />}
+</MenuItem>
+     ))}
+</Menu>
+</>
 )}
 <IconButton color="primary" sx={{ mr: 0.5 }} size="small">
 <SearchIcon fontSize="small" />
@@ -924,7 +993,14 @@ Service
 {/* Search input */}
 <Box sx={{ position: 'relative', flex: 1 }}>
 {searchMode === 'autocomplete' ? (
-<Autocomplete onLoad={handleLoad} options={{ types: ['(regions)'], componentRestrictions: { country: 'au' } }}>
+  <Autocomplete
+ onLoad={handleLoad}
+ options={{
+   types: ['geocode'], // Changed from '(regions)' to 'geocode' for full address support
+   componentRestrictions: { country: 'au' },
+   fields: ['formatted_address', 'geometry']
+ }}
+>
 <TextField
 fullWidth
 variant="standard"
@@ -942,20 +1018,60 @@ endAdornment: (
 <ClearIcon fontSize="small" />
 </IconButton>
 )}
-{searchMode === 'autocomplete' && (
-<FormControl variant="standard" sx={{ width: 80, mx: 1 }}>
-<Select
-value={radius}
-onChange={handleRadiusChange}
-disableUnderline
-sx={{ fontSize: '0.9rem', '& .MuiSelect-select': { py: 0.5 } }}
+{!isMobile && searchMode === 'autocomplete' && (
+<>
+<Button
+     variant="outlined"
+     size="small"
+     onClick={(e) => setRadiusAnchorEl(e.currentTarget)}
+     sx={{
+       borderColor: 'rgba(0,0,0,0.2)',
+       color: '#333',
+       textTransform: 'none',
+       borderRadius: '20px',
+       px: 2,
+       mx: 1,
+       height: '32px',
+       fontSize: '0.9rem',
+       '&:hover': {
+         borderColor: '#C8102E',
+         backgroundColor: 'rgba(200, 16, 46, 0.04)'
+       }
+     }}
 >
-<MenuItem value={5}>5 km</MenuItem>
-<MenuItem value={10}>10 km</MenuItem>
-<MenuItem value={20}>20 km</MenuItem>
-<MenuItem value={50}>50 km</MenuItem>
-</Select>
-</FormControl>
+     {radius} km
+</Button>
+<Menu
+     anchorEl={radiusAnchorEl}
+     open={Boolean(radiusAnchorEl)}
+     onClose={() => setRadiusAnchorEl(null)}
+     MenuListProps={{
+       sx: {
+         py: 0,
+         borderRadius: '8px',
+         boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+       }
+     }}
+>
+     {[5, 10, 20, 50].map((value) => (
+<MenuItem
+         key={value}
+         onClick={() => handleRadiusSelect(value)}
+         sx={{
+           fontSize: '0.9rem',
+           fontWeight: radius === value ? 600 : 400,
+           bgcolor: radius === value ? 'rgba(200, 16, 46, 0.08)' : 'transparent',
+           '&:hover': {
+             bgcolor: 'rgba(0, 0, 0, 0.04)'
+           }
+         }}
+>
+         {value} km
+         {radius === value && <CheckIcon fontSize="small" sx={{ color: '#C8102E', ml: 1 }} />}
+</MenuItem>
+     ))}
+</Menu>
+</>
 )}
 <IconButton color="primary" sx={{ mr: 0.5 }} size="small">
 <SearchIcon fontSize="small" />

@@ -264,8 +264,8 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(({
 </Typography>
 </Box>
 
-        {showDistance && store.distance !== undefined && (
-<Typography variant="body2" sx={{
+{store.distance !== undefined && !isNaN(store.distance) && (
+    <Typography variant="body2" sx={{
 
             mb: 1.5,
 
@@ -296,7 +296,7 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(({
 
             }} />
 
-            {store.distance.toFixed(1)} km away
+{(store.distance || 0).toFixed(1)} km away
 </Typography>
 
         )}
