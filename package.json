@@ -20,6 +20,8 @@
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "react-virtuoso": "^4.12.6",
+    "react-window": "^1.8.11",
     "tedious": "^18.2.0",
     "typescript": "latest"
   },

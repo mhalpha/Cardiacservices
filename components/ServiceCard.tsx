@@ -1,111 +1,246 @@
+// ServiceCard.tsx - Updated with sleek red bottom border for selected state
+
 import React from 'react';
+
 import { Card, CardContent, Typography, Box, Button } from '@mui/material';
+
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+
 import PhoneIcon from '@mui/icons-material/Phone';
+
 import EmailIcon from '@mui/icons-material/Email';
 
+import { SxProps, Theme } from '@mui/material';
+
 interface ServiceCardProps {
-store: {
-centre_name: string;
-address: string;
-centre_phone_1: string;
-primary_email: string;
-lat: string | number;
-lng: string | number;
-website: string;
-distance?: number;
-};
-onClick: () => void;
-showDistance?: boolean;
-isSelected?: boolean;
+
+  store: {
+
+    service_name: string;
+
+    street_address: string;
+
+    phone_number: string;
+
+    email: string;
+
+    website: string;
+
+    program_type: 'Public' | 'Private';
+
+    distance?: number;
+
+  };
+
+  onClick: () => void;
+
+  showDistance?: boolean;
+
+  isSelected?: boolean;
+
+  sx?: SxProps<Theme>;
+
 }
 
-// Lightweight card component with reduced animations and optimized rendering
-const ServiceCard: React.FC<ServiceCardProps> = ({ store, onClick, showDistance, isSelected }) => {
-// Pre-compute the URL to avoid doing this on every render
-const serviceUrl = `https://cardiac-services-directory.heartfoundation.org.au/${store.website}`;
+const ServiceCard: React.FC<ServiceCardProps> = React.memo(({
 
-// Prevent event bubbling for the button click
-const handleButtonClick = (e: React.MouseEvent) => {
-e.stopPropagation();
-};
+    store,
 
-return (
+    onClick,
+
+    showDistance,
+
+    isSelected,
+
+    sx = {}
+
+  }) => {
+
+  const serviceUrl = `https://cardiac-services-directory.heartfoundation.org.au/${store.website}`;
+
+  const handleButtonClick = (e: React.MouseEvent) => {
+
+    e.stopPropagation();
+
+  };
+
+  return (
 <Card
-onClick={onClick}
-sx={{
-borderRadius: '8px',
-cursor: 'pointer',
-transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-transform: isSelected ? 'scale(1.02)' : 'none',
-boxShadow: isSelected ? '0 2px 8px rgba(0, 0, 0, 0.1)' : '0 1px 3px rgba(0, 0, 0, 0.05)',
-'&:hover': {
-boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-// Only apply transform on hover if not already selected (reduces unnecessary animations)
-transform: isSelected ? 'scale(1.02)' : 'scale(1.01)'
-}
-}}
+
+      onClick={onClick}
+
+      sx={{
+
+        borderRadius: '12px',
+
+        cursor: 'pointer',
+
+        mb: 0, // No margin bottom - container handles spacing
+
+        transform: isSelected ? 'scale(1.02)' : 'none',
+
+        boxShadow: isSelected ? 3 : 1,
+
+        width: '100%',
+
+        transition: 'all 0.2s ease-in-out',
+
+        position: 'relative', // Required for the pseudo-element positioning
+
+        '&::after': isSelected ? {
+
+          content: '""',
+
+          position: 'absolute',
+
+          bottom: 0,
+
+          left: 0,
+
+          right: 0,
+
+          height: '2px', // Thin border
+
+          backgroundColor: '#C8102E', // Heart Foundation red color
+
+          zIndex: 1,
+
+        } : {},
+
+        ...sx
+
+      }}
 >
-<CardContent sx={{ padding: 2, '&:last-child': { pb: 2 } }}>
-<Typography variant="subtitle1" component="h3" sx={{ fontWeight: 'medium', mb: 1 }}>
-{store.centre_name}
+<CardContent sx={{
+
+        padding: 2,
+
+        '&:last-child': { pb: 2 },
+
+        display: 'flex',
+
+        flexDirection: 'column'
+
+      }}>
+<Box display="flex" alignItems="center" justifyContent="space-between" mb={1.5}>
+<Typography variant="subtitle1" component="h3" sx={{ fontWeight: 'medium', pr: 1 }}>
+
+            {store.service_name}
 </Typography>
+<Box 
 
-<Box display="flex" alignItems="flex-start" mb={1}>
+            component="span"
+
+            sx={{
+
+              fontSize: '0.75rem',
+
+              py: 0.25,
+
+              px: 1,
+
+              borderRadius: '4px',
+
+              backgroundColor: store.program_type === 'Public' ? 'rgba(25, 118, 210, 0.12)' : 'rgba(200, 16, 46, 0.12)',
+
+              color: store.program_type === 'Public' ? '#1976d2' : '#C8102E',
+
+              fontWeight: 500,
+
+              whiteSpace: 'nowrap',
+
+              flexShrink: 0
+
+            }}
+>
+
+            {store.program_type}
+</Box>
+</Box>
+<Box display="flex" alignItems="flex-start" mb={1.5}>
 <LocationOnIcon sx={{ mr: 1, color: '#C8102E', fontSize: '1.2rem', mt: 0.2 }} />
-<Typography variant="body2" sx={{ lineHeight: 1.4 }}>{store.address}</Typography>
+<Typography variant="body2" sx={{ lineHeight: 1.4 }}>{store.street_address}</Typography>
 </Box>
-
-<Box display="flex" alignItems="center" mb={1}>
+<Box display="flex" alignItems="center" mb={1.5}>
 <PhoneIcon sx={{ mr: 1, color: '#C8102E', fontSize: '1.2rem' }} />
-<Typography variant="body2">{store.centre_phone_1}</Typography>
+<Typography variant="body2">{store.phone_number}</Typography>
 </Box>
-
 <Box display="flex" alignItems="flex-start" mb={1.5}>
 <EmailIcon sx={{ mr: 1, color: '#C8102E', fontSize: '1.2rem', mt: 0.2 }} />
 <Typography
-variant="body2"
-sx={{
-lineHeight: 1.4,
-maxWidth: 'calc(100% - 32px)', // Accounting for icon width and margin
-overflow: 'hidden',
-textOverflow: 'ellipsis',
-whiteSpace: 'nowrap'
-}}
+
+            variant="body2"
+
+            sx={{
+
+              lineHeight: 1.4,
+
+              maxWidth: 'calc(100% - 32px)',
+
+              overflow: 'hidden',
+
+              textOverflow: 'ellipsis',
+
+              whiteSpace: 'nowrap'
+
+            }}
 >
-{store.primary_email}
+
+            {store.email}
 </Typography>
 </Box>
 
-{showDistance && store.distance !== undefined && (
+        {showDistance && store.distance !== undefined && (
 <Typography variant="body2" color="textSecondary" mb={1.5}>
-Approx. {store.distance.toFixed(1)} km away
-</Typography>
-)}
 
-<Box display="flex" justifyContent="center">
+            Approx. {store.distance.toFixed(1)} km away
+</Typography>
+
+        )}
+<Box display="flex" justifyContent="center" mt={0.5}>
 <Button
-variant="outlined"
-sx={{
-width: 1,
-borderColor: '#C8102E',
-color: 'black',
-'&:hover': {
-borderColor: '#C8102E',
-backgroundColor: 'rgba(200, 16, 46, 0.04)'
-},
-}}
-href={serviceUrl}
-target="_blank"
-onClick={handleButtonClick} // Prevent card click when clicking the button
+
+            variant="text"
+
+            size="small"
+
+            sx={{
+
+              width: 1,
+
+              color: '#C8102E',
+
+              textTransform: 'none',
+
+              fontWeight: 500,
+
+              borderRadius: '8px',
+
+              py: 0.75,
+
+              '&:hover': {
+
+                backgroundColor: 'rgba(200, 16, 46, 0.08)'
+
+              },
+
+            }}
+
+            href={serviceUrl}
+
+            target="_blank"
+
+            onClick={handleButtonClick}
 >
-View Service
+
+            View Service
 </Button>
 </Box>
 </CardContent>
 </Card>
-);
-};
 
-// Use React.memo to prevent unnecessary re-renders
-export default React.memo(ServiceCard);
+  );
+
+});
+
+export default ServiceCard; 

@@ -1,237 +1,562 @@
-import React, { forwardRef, useImperativeHandle, useRef, useState, useEffect, useMemo } from 'react';
+import React, { forwardRef, useImperativeHandle, useRef, useState, useEffect, useMemo, useCallback } from 'react';
+
 import { GoogleMap, Marker, InfoWindow, MarkerClusterer } from '@react-google-maps/api';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
+
+import { Box, Button, Typography } from '@mui/material';
+
 import PhoneIcon from '@mui/icons-material/Phone';
+
 import EmailIcon from '@mui/icons-material/Email';
-import { Button, Box, Typography } from '@mui/material';
+
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+
 interface Store {
- centre_name: string;
- address: string;
- centre_phone_1: string;
- primary_email: string;
- lat: string | number;
- lng: string | number;
- website: string;
- distance?: number;
+
+  service_name: string;
+
+  street_address: string;
+
+  phone_number: string;
+
+  email: string;
+
+  lat: string | number;
+
+  lng: string | number;
+
+  website: string;
+
+  program_type: 'Public' | 'Private';
+
+  distance?: number;
+
 }
+
 interface ServiceMapProps {
- stores: Store[];
- nearestStores: Store[];
- center: { lat: number; lng: number };
- zoom: number;
- showNearestMarkers: boolean;
- onMarkerClick: (store: Store, index: number) => void;
- onInfoWindowClose: () => void;
+
+  stores: Store[];
+
+  nearestStores: Store[];
+
+  center: { lat: number; lng: number };
+
+  zoom: number;
+
+  showNearestMarkers: boolean;
+
+  onMarkerClick: (store: Store, index: number) => void;
+
+  onInfoWindowClose: () => void;
+
 }
-// Memoized container style to prevent recreating on every render
+
 const containerStyle = {
- width: '100%',
- height: '100%',
+
+  width: '100%',
+
+  height: '100%'
+
 };
+
 const ServiceMap = forwardRef((props: ServiceMapProps, ref) => {
- const { stores, nearestStores, center, zoom, showNearestMarkers, onMarkerClick, onInfoWindowClose } = props;
- const [selectedStore, setSelectedStore] = useState<Store | null>(null);
- const mapRef = useRef<any>(null);
- const [mapLoaded, setMapLoaded] = useState(false);
- // Expose methods to parent component
- useImperativeHandle(ref, () => ({
-   handleStoreClick(store: Store) {
-     setSelectedStore(store);
-   },
-   fitBounds(bounds: any) {
-     if (mapRef.current) {
-       mapRef.current.fitBounds(bounds);
-     }
-   },
- }));
- // Memoize markers to prevent unnecessary recalculations
- const allMarkers = useMemo(() => {
-   if (showNearestMarkers) {
-     // Create unique set of markers by combining both arrays and filtering out duplicates
-     const uniqueStores = new Map<string, Store>();
-     // Add regular stores first
-     stores.forEach(store => {
-       const key = `${store.lat}-${store.lng}`;
-       uniqueStores.set(key, store);
-     });
-     // Then add nearest stores (only if they're not already in the map)
-     nearestStores.forEach(store => {
-       const key = `${store.lat}-${store.lng}`;
-       if (!uniqueStores.has(key)) {
-         uniqueStores.set(key, store);
-       }
-     });
-     return Array.from(uniqueStores.values());
-   } else {
-     return stores;
-   }
- }, [stores, nearestStores, showNearestMarkers]);
- // Handle map load event
- const handleMapLoad = (map: any) => {
-   console.log("Map loaded successfully");
-   mapRef.current = map;
-   setMapLoaded(true);
- };
- // Update the map when center or zoom changes
- useEffect(() => {
-   if (mapRef.current) {
-     mapRef.current.panTo(center);
-     mapRef.current.setZoom(zoom);
-   }
- }, [center, zoom]);
- // Reset selected store when stores change
- useEffect(() => {
-   setSelectedStore(null);
- }, [stores]);
- // Memoize the marker click handler
- const handleMarkerClick = (store: Store, index: number) => {
-   setSelectedStore(store);
-   onMarkerClick(store, index);
- };
- // Map options
- const mapOptions = {
-   gestureHandling: 'greedy',
-   disableDefaultUI: true,
-   clickableIcons: false,
-   zoomControl: true,
-   maxZoom: 18,
-   minZoom: 3,
-   mapTypeControl: false,
-   streetViewControl: false,
-   rotateControl: false,
-   scaleControl: false,
-   fullscreenControl: false,
-   tilt: 0,
- };
- // Cluster options - defined inside component to avoid 'google is not defined' error
- const clusterOptions = {
-   gridSize: 50,
-   maxZoom: 15,
-   minimumClusterSize: 3,
- };
- return (
+
+  const { stores, nearestStores, center, zoom, showNearestMarkers, onMarkerClick, onInfoWindowClose } = props;
+
+  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
+
+  const mapRef = useRef<google.maps.Map | null>(null);
+
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  // Expose methods to parent
+
+  useImperativeHandle(ref, () => ({
+
+    handleStoreClick(store: Store) {
+
+      setSelectedStore(store);
+
+    },
+
+    fitBounds(bounds: google.maps.LatLngBounds) {
+
+      if (mapRef.current) {
+
+        mapRef.current.fitBounds(bounds);
+
+      }
+
+    },
+
+  }));
+
+  // Memoize markers
+
+  const allMarkers = useMemo(() => {
+
+    if (showNearestMarkers) {
+
+      const uniqueStores = new Map<string, Store>();
+
+      stores.forEach(store => {
+
+        const key = `${store.lat}-${store.lng}`;
+
+        uniqueStores.set(key, store);
+
+      });
+
+      nearestStores.forEach(store => {
+
+        const key = `${store.lat}-${store.lng}`;
+
+        if (!uniqueStores.has(key)) {
+
+          uniqueStores.set(key, store);
+
+        }
+
+      });
+
+      return Array.from(uniqueStores.values());
+
+    }
+
+    return stores;
+
+  }, [stores, nearestStores, showNearestMarkers]);
+
+  // Handle map load
+
+  const handleMapLoad = useCallback((map: google.maps.Map) => {
+
+    mapRef.current = map;
+
+    setMapLoaded(true);
+
+  }, []);
+
+  // Update map when center/zoom changes
+
+  useEffect(() => {
+
+    if (mapRef.current) {
+
+      mapRef.current.panTo(center);
+
+      mapRef.current.setZoom(zoom);
+
+    }
+
+  }, [center, zoom]);
+
+  // Reset selected store when stores change
+
+  useEffect(() => {
+
+    setSelectedStore(null);
+
+  }, [stores]);
+
+  // Marker click handler
+
+  const handleMarkerClick = useCallback((store: Store, index: number) => {
+
+    setSelectedStore(store);
+
+    onMarkerClick(store, index);
+
+  }, [onMarkerClick]);
+
+  // Map options
+
+  const mapOptions = useMemo(() => ({
+
+    gestureHandling: 'greedy' as const,
+
+    disableDefaultUI: true,
+
+    clickableIcons: false,
+
+    zoomControl: true,
+
+    maxZoom: 18,
+
+    minZoom: 3,
+
+    backgroundColor: '#f5f5f5',
+
+    styles: [
+
+      {
+
+        featureType: 'poi',
+
+        elementType: 'labels',
+
+        stylers: [{ visibility: 'off' }]
+
+      },
+
+      {
+
+        featureType: 'transit',
+
+        elementType: 'labels.icon',
+
+        stylers: [{ visibility: 'off' }]
+
+      }
+
+    ]
+
+  }), []);
+
+  // Cluster options
+
+  const clusterOptions = useMemo(() => ({
+
+    gridSize: 60,
+
+    maxZoom: 15,
+
+    minimumClusterSize: 2,
+
+    averageCenter: true,
+
+    // Modern styling with smooth circles and better typography
+
+    styles: [
+
+      {
+
+        textColor: 'white',
+
+        textSize: 12,
+
+        url: 'data:image/svg+xml;utf-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"%3E%3Ccircle cx="20" cy="20" r="18" fill="%23C8102E" stroke="%23ffffff" stroke-width="2"/%3E%3C/svg%3E',
+
+        height: 40,
+
+        width: 40,
+
+        anchor: [20, 20],
+
+        textLineHeight: 40,
+
+        fontWeight: 'bold',
+
+      },
+
+      {
+
+        textColor: 'white',
+
+        textSize: 12,
+
+        url: 'data:image/svg+xml;utf-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 44 44"%3E%3Ccircle cx="22" cy="22" r="20" fill="%23C8102E" stroke="%23ffffff" stroke-width="2"/%3E%3C/svg%3E',
+
+        height: 44,
+
+        width: 44,
+
+        anchor: [22, 22],
+
+        textLineHeight: 44,
+
+        fontWeight: 'bold',
+
+      },
+
+      {
+
+        textColor: 'white',
+
+        textSize: 14,
+
+        url: 'data:image/svg+xml;utf-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="50" height="50" viewBox="0 0 50 50"%3E%3Ccircle cx="25" cy="25" r="23" fill="%23C8102E" stroke="%23ffffff" stroke-width="2"/%3E%3C/svg%3E',
+
+        height: 50,
+
+        width: 50,
+
+        anchor: [25, 25],
+
+        textLineHeight: 50,
+
+        fontWeight: 'bold',
+
+      },
+
+      {
+
+        textColor: 'white',
+
+        textSize: 16,
+
+        url: 'data:image/svg+xml;utf-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 56 56"%3E%3Ccircle cx="28" cy="28" r="25" fill="%23C8102E" stroke="%23ffffff" stroke-width="2"/%3E%3C/svg%3E',
+
+        height: 56,
+
+        width: 56,
+
+        anchor: [28, 28],
+
+        textLineHeight: 56,
+
+        fontWeight: 'bold',
+
+      }
+
+    ],
+
+    // Animation options for smoother transitions
+
+    calculator: (markers: any[], numStyles: number) => {
+
+      const count = markers.length;
+
+      let index = 0;
+
+      let dv = count;
+
+      if (dv < 10) {
+
+        index = 0;
+
+      } else if (dv < 50) {
+
+        index = 1;
+
+      } else if (dv < 100) {
+
+        index = 2;
+
+      } else {
+
+        index = 3;
+
+      }
+
+      return {
+
+        text: count.toString(),
+
+        index: index,
+
+        title: `${count} locations`
+
+      };
+
+    }
+
+  }), []);
+
+  // Get marker icon based on program type
+
+  const getMarkerIcon = useCallback((programType: 'Public' | 'Private') => {
+
+    return {
+
+      url: programType === 'Public' 
+
+        ? 'data:image/svg+xml;utf-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="36" viewBox="0 0 24 36"%3E%3Cpath fill="%231976d2" d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 24 12 24s12-16.8 12-24c0-6.6-5.4-12-12-12z"/%3E%3Ccircle cx="12" cy="12" r="8" fill="white"/%3E%3C/svg%3E'
+
+        : 'data:image/svg+xml;utf-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="24" height="36" viewBox="0 0 24 36"%3E%3Cpath fill="%23C8102E" d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 24 12 24s12-16.8 12-24c0-6.6-5.4-12-12-12z"/%3E%3Ccircle cx="12" cy="12" r="8" fill="white"/%3E%3C/svg%3E',
+
+      scaledSize: new google.maps.Size(24, 36),
+
+      origin: new google.maps.Point(0, 0),
+
+      anchor: new google.maps.Point(12, 36)
+
+    };
+
+  }, []);
+
+  return (
 <GoogleMap
-     mapContainerStyle={containerStyle}
-     center={center}
-     zoom={zoom}
-     onLoad={handleMapLoad}
-     options={mapOptions}
+
+      mapContainerStyle={containerStyle}
+
+      center={center}
+
+      zoom={zoom}
+
+      onLoad={handleMapLoad}
+
+      options={mapOptions}
+
+      onUnmount={() => {
+
+        if (mapRef.current) {
+
+          google.maps.event.clearInstanceListeners(mapRef.current);
+
+        }
+
+      }}
 >
-     {mapLoaded && (
+
+      {mapLoaded && (
 <MarkerClusterer options={clusterOptions}>
-         {(clusterer) => (
-<div>
-             {allMarkers.map((store, index) => (
+
+          {(clusterer) => {
+
+            return (
+<>
+
+                {allMarkers.map((store, index) => {
+
+                  const lat = typeof store.lat === 'string' ? parseFloat(store.lat) : store.lat as number;
+
+                  const lng = typeof store.lng === 'string' ? parseFloat(store.lng) : store.lng as number;
+
+                  return (
 <Marker
-                 key={`${store.lat}-${store.lng}-${index}`}
-                 position={{
-                   lat: typeof store.lat === 'string' ? parseFloat(store.lat) : store.lat as number,
-                   lng: typeof store.lng === 'string' ? parseFloat(store.lng) : store.lng as number
-                 }}
-                 onClick={() => handleMarkerClick(store, index)}
-                 clusterer={clusterer}
-                 zIndex={selectedStore && store &&
-                   typeof selectedStore.lat !== undefined && typeof store.lat !== undefined &&
-                   typeof selectedStore.lng !== undefined && typeof store.lng !== undefined &&
-                   String(selectedStore.lat) === String(store.lat) &&
-                   String(selectedStore.lng) === String(store.lng)
-                   ? 1000 : 1}
-               />
-             ))}
-</div>
-         )}
+
+                      key={`${lat}-${lng}-${index}`}
+
+                      position={{ lat, lng }}
+
+                      onClick={() => handleMarkerClick(store, index)}
+
+                      clusterer={clusterer}
+
+                      zIndex={selectedStore?.lat === store.lat && selectedStore?.lng === store.lng ? 1000 : 1}
+
+                      icon={getMarkerIcon(store.program_type)}
+
+                    />
+
+                  );
+
+                })}
+</>
+
+            );
+
+          }}
 </MarkerClusterer>
-     )}
-     {selectedStore && (
+
+      )}
+
+      {selectedStore && (
 <InfoWindow
-         position={{
-           lat: typeof selectedStore.lat === 'string' ? parseFloat(selectedStore.lat) : selectedStore.lat as number,
-           lng: typeof selectedStore.lng === 'string' ? parseFloat(selectedStore.lng) : selectedStore.lng as number
-         }}
-         onCloseClick={() => {
-           setSelectedStore(null);
-           onInfoWindowClose();
-         }}
-         // Define options inline to avoid 'google is not defined' error
-         options={{
-           pixelOffset: {
-             equals: () => false, // Stub method required by Google Maps API
-             x: 0,
-             y: -30
-           } as any
-         }}
+
+          position={{
+
+            lat: typeof selectedStore.lat === 'string' ? parseFloat(selectedStore.lat) : selectedStore.lat as number,
+
+            lng: typeof selectedStore.lng === 'string' ? parseFloat(selectedStore.lng) : selectedStore.lng as number
+
+          }}
+
+          onCloseClick={() => {
+
+            setSelectedStore(null);
+
+            onInfoWindowClose();
+
+          }}
+
+          options={{
+
+            pixelOffset: new google.maps.Size(0, -30)
+
+          }}
 >
 <Box sx={{ width: '250px' }}>
-<Typography
-             variant="subtitle1"
-             sx={{
-               whiteSpace: 'nowrap',
-               overflow: 'hidden',
-               textOverflow: 'ellipsis',
-               fontWeight: 500
-             }}
->
-             {selectedStore.centre_name}
+<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+<Typography variant="subtitle1" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500, pr: 1 }}>
+
+                {selectedStore.service_name}
 </Typography>
+<Box 
+
+                component="span"
+
+                sx={{
+
+                  fontSize: '0.75rem',
+
+                  py: 0.25,
+
+                  px: 1,
+
+                  borderRadius: '4px',
+
+                  backgroundColor: selectedStore.program_type === 'Public' ? 'rgba(25, 118, 210, 0.12)' : 'rgba(200, 16, 46, 0.12)',
+
+                  color: selectedStore.program_type === 'Public' ? '#1976d2' : '#C8102E',
+
+                  fontWeight: 500,
+
+                  whiteSpace: 'nowrap',
+
+                  flexShrink: 0
+
+                }}
+>
+
+                {selectedStore.program_type}
+</Box>
+</Box>
 <Box display="flex" alignItems="flex-start" mb={1}>
 <LocationOnIcon sx={{ mr: 1, color: '#C8102E', fontSize: '1.2rem', mt: 0.2 }} />
-<Typography
-               variant="body2"
-               sx={{
-                 whiteSpace: 'nowrap',
-                 overflow: 'hidden',
-                 textOverflow: 'ellipsis',
-                 lineHeight: 1.4,
-                 maxWidth: 'calc(100% - 32px)' // Account for icon
-               }}
->
-               {selectedStore.address}
+<Typography variant="body2" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.4 }}>
+
+                {selectedStore.street_address}
 </Typography>
 </Box>
 <Box display="flex" alignItems="center" mb={1}>
 <PhoneIcon sx={{ mr: 1, color: '#C8102E', fontSize: '1.2rem' }} />
-<Typography variant="body2">{selectedStore.centre_phone_1}</Typography>
+<Typography variant="body2">{selectedStore.phone_number}</Typography>
 </Box>
 <Box display="flex" alignItems="flex-start" mb={1.5}>
 <EmailIcon sx={{ mr: 1, color: '#C8102E', fontSize: '1.2rem', mt: 0.2 }} />
-<Typography
-               variant="body2"
-               sx={{
-                 whiteSpace: 'nowrap',
-                 overflow: 'hidden',
-                 textOverflow: 'ellipsis',
-                 lineHeight: 1.4,
-                 maxWidth: 'calc(100% - 32px)' // Account for icon
-               }}
->
-               {selectedStore.primary_email}
+<Typography variant="body2" sx={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+
+                {selectedStore.email}
 </Typography>
 </Box>
 <Box display="flex" justifyContent="center">
 <Button
-               variant="outlined"
-               size="small"
-               sx={{
-                 width: 1,
-                 borderColor: '#C8102E',
-                 color: 'black',
-                 textTransform: 'none',
-                 '&:hover': {
-                   borderColor: '#C8102E',
-                   backgroundColor: 'rgba(200, 16, 46, 0.04)'
-                 },
-               }}
-               href={`https://cardiac-services-directory.heartfoundation.org.au/${selectedStore.website}`}
-               target="_blank"
+
+                variant="outlined"
+
+                size="small"
+
+                sx={{
+
+                  width: 1,
+
+                  borderColor: '#C8102E',
+
+                  color: 'black',
+
+                  textTransform: 'none',
+
+                  '&:hover': { borderColor: '#C8102E', backgroundColor: 'rgba(200, 16, 46, 0.04)' }
+
+                }}
+
+                href={`https://cardiac-services-directory.heartfoundation.org.au/${selectedStore.website}`}
+
+                target="_blank"
 >
-               View Service
+
+                View Service
 </Button>
 </Box>
 </Box>
 </InfoWindow>
-     )}
+
+      )}
 </GoogleMap>
- );
+
+  );
+
 });
-// Use React.memo to prevent unnecessary re-renders
-export default React.memo(ServiceMap);
+
+export default React.memo(ServiceMap); 
