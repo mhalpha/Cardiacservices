@@ -28,7 +28,7 @@ const LoadingAnimation: React.FC<LoadingAnimationProps> = ({ onComplete }) => {
 
           // Simple linear counter
 
-          const newValue = Math.min(100, prev + 2);
+          const newValue = Math.min(100, prev + 1);
 
           return newValue;
 
