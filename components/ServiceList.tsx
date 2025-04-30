@@ -19,7 +19,7 @@ const libraries: Libraries = ['places', 'geometry'];
 // Google Maps configuration
 const googleMapsConfig = {
 id: 'google-map-script',
-googleMapsApiKey: "AIzaSyAm-eP8b7-FH2A8nzYucTG9NcPTz0OiAX0",
+googleMapsApiKey: "AIzaSyAZ7r9_s2iuFZk4kCeiPbqm9_w0n6nesTM",
 libraries,
 language: 'en',
 region: 'AU',
