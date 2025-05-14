@@ -34,7 +34,7 @@ const LoadingAnimation: React.FC<LoadingAnimationProps> = ({ onComplete }) => {
 
         });
 
-      }, 40); // 30ms for a total of ~3 seconds to count to 100
+      }, 10); // 30ms for a total of ~3 seconds to count to 100
 
     } else {
 

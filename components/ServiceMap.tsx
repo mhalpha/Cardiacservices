@@ -48,6 +48,8 @@ interface ServiceMapProps {
 
   onInfoWindowClose: () => void;
 
+  onBoundsChanged: (bounds: google.maps.LatLngBounds | null, zoom: number) => void;
+
 }
 
 const containerStyle = {
@@ -60,7 +62,7 @@ const containerStyle = {
 
 const ServiceMap = forwardRef((props: ServiceMapProps, ref) => {
 
-  const { stores, nearestStores, center, zoom, showNearestMarkers, onMarkerClick, onInfoWindowClose } = props;
+  const { stores, nearestStores, center, zoom, showNearestMarkers, onMarkerClick, onInfoWindowClose, onBoundsChanged } = props;
 
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
 
@@ -69,6 +71,14 @@ const ServiceMap = forwardRef((props: ServiceMapProps, ref) => {
   const [mapLoaded, setMapLoaded] = useState(false);
 
   // Expose methods to parent
+
+  const handleBoundsChanged = useCallback(() => {
+    if (mapRef.current) {
+      const bounds = mapRef.current.getBounds();
+      const currentZoom = mapRef.current.getZoom() || zoom;
+      onBoundsChanged(bounds || null, currentZoom);
+    }
+  }, [onBoundsChanged, zoom]);
 
   useImperativeHandle(ref, () => ({
 
@@ -383,19 +393,26 @@ const ServiceMap = forwardRef((props: ServiceMapProps, ref) => {
 
       zoom={zoom}
 
-      onLoad={handleMapLoad}
+      onLoad={(map) => {
+        handleMapLoad(map);
+        // Initial bounds after map loads
+        setTimeout(() => {
+          if (map.getBounds()) {
+            onBoundsChanged(map.getBounds() || null, map.getZoom() || zoom);
+          }
+        }, 500);
+      }}
 
       options={mapOptions}
 
       onUnmount={() => {
-
         if (mapRef.current) {
-
           google.maps.event.clearInstanceListeners(mapRef.current);
-
         }
-
       }}
+      onBoundsChanged={handleBoundsChanged}
+      onZoomChanged={handleBoundsChanged}
+      onDragEnd={handleBoundsChanged}
 >
 
       {mapLoaded && (
