@@ -1268,7 +1268,7 @@ const ServiceList = () => {
         position: 'absolute',
         top: isMobile ? (isListOpen ? 140 : '100%') : 85,
         left: isMobile ? 0 : '15%',
-        width: isMobile ? '100%' : 300,
+        width: isMobile ? '100%' : 375,
         height: isMobile && isListOpen ? 'calc(100vh - 140px)' : 'auto',
         zIndex: isMobile ? 15 : 5,
         opacity: isListOpen ? 1 : 0,
